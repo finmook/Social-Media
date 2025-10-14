@@ -7,10 +7,10 @@ const secret = new TextEncoder().encode(process.env.SUPABASE_JWT_SECRET);
 export async function requireAuth(req: Request, res: Response, next: NextFunction) {
     const token = (req.headers.authorization || '').replace('Bearer ', '');
     if (!token) return res.status(401).json({ error: 'Missing bearer token' });
-    
+
     const decoded = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString());
 
-  
+
     console.log({
         ISSUER,
         payloadIss: decoded.iss,
@@ -27,7 +27,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
         });
 
         (req as any).authUser = {
-            id: payload.sub as string,                        
+            id: payload.sub as string,
             email: (payload as any).email as string | undefined,
         };
 

@@ -61,8 +61,6 @@ export default function LoginPage() {
               <Button type="submit" variant="contained" disabled={loading}>
                 {loading ? 'Signing in…' : 'Sign In'}
               </Button>
-              <Divider>or sign in with</Divider>
-              <GoogleButton />
               <Link href="/Register" className='text-xs text-center'>Don't have an account? Sign up.</Link>
             </Stack>
           </form>

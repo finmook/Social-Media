@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase';
 export default function Callback() {
   const router = useRouter();
   const q = useSearchParams();
-
+  
   useEffect(() => {
     (async () => {
       const code = q.get('code');
@@ -19,11 +19,13 @@ export default function Callback() {
       }
 
       const { data: { session } } = await supabase.auth.getSession();
+      console.log(session);
       console.log('token prefix:', session?.access_token?.slice(0, 25)); 
       if (session) {
         
-        const meta = session.user.user_metadata || {};
-        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/user`, {
+       
+          const meta = session.user.user_metadata || {};
+          await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/user`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -35,10 +37,12 @@ export default function Callback() {
             avatarUrl: meta.avatar_url ?? null,
           }),
         });
+        
+        
       }
       router.push('/Feed');
     })();
   }, [q, router]);
 
-  return <p>Finishing sign in…</p>;
+  return <p className="flex justify-center items-center min-h-dvh ">Finishing sign in…</p>;
 }

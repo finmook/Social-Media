@@ -6,6 +6,8 @@ import * as React from 'react';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
 import Paper from '@mui/material/Paper';
+import { Divider } from '@mui/material';
+import GoogleButton from '@/components/GoogleButton';
 
 export default function Home() {
   
@@ -21,6 +23,8 @@ export default function Home() {
         <Stack direction="column" spacing={2}>
           <Button variant="outlined" href="/Login">Sign In</Button>
           <Button variant="contained" href="/Register" color="primary">Sign Up</Button>
+          <Divider>or sign in with</Divider>
+              <GoogleButton />
         </Stack>
       </div>
     </Paper>
