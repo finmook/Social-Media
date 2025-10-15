@@ -6,6 +6,6 @@ export default function InputField(){
           sx={{ width: '50%' }}
           multiline
           rows={4}
-          defaultValue="Default Value"
+          defaultValue=""
         />);
 }

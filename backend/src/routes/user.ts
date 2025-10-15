@@ -1,7 +1,7 @@
 import { Router, Request } from 'express';
 
 import { requireAuth } from '../middleware/requireAuth';
-import supabase from '../script';
+import prisma from '../script';
 
 
 
@@ -11,7 +11,7 @@ router.use(requireAuth);
 
 router.get('/', async (req, res) => {
   const authUser = (req as any).authUser;
-  const row = await supabase.user.findUnique({ where: { sub: authUser.id } });
+  const row = await prisma.user.findUnique({ where: { sub: authUser.id } });
   res.json({ user: row });
 });
 
@@ -21,7 +21,7 @@ router.post('/', requireAuth, async (req, res) => {
 
   try {
     
-    const row = await supabase.user.upsert({
+    const row = await prisma.user.upsert({
       where: { sub: u.id },              
       create: {
         sub: u.id,

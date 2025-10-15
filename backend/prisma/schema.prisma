@@ -16,4 +16,17 @@ model User {
   sub         String   @unique
   id          String   @id @default(uuid()) @db.Uuid
   handle      String?
+  posts       Post[]
+  
 }
+model Post {
+  id           String          @id @default(uuid()) @db.Uuid
+  author       User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId     String          @db.Uuid
+  content      String          @db.Text
+  images       String[]        // store Supabase Storage paths/URLs
+  likeCount    Int             @default(0)
+  createdAt    DateTime        @default(now())
+}
+
+
