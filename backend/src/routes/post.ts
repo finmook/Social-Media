@@ -30,11 +30,19 @@ router.post('/', requireAuth, async (req, res) => {
   if (!content || typeof content !== 'string' || content.trim().length === 0) {
     return res.status(400).json({ error: 'content is required' });
   }
+  const me = await prisma.user.findUnique({
+    where: { sub: u.id },
+    select: { id: true },
+  });
+
+  if (!me) {
+    return res.status(404).json({ error: 'User not found' });
+  }
 
   try {
     const post = await prisma.post.create({
       data: {
-        authorId: u.id,
+        authorId: me.id,
         content: content.trim(),
         images: Array.isArray(images) ? images : [],
         // likeCount uses default(0); createdAt uses default(now())
@@ -47,6 +55,23 @@ router.post('/', requireAuth, async (req, res) => {
     return res.status(500).json({ error: 'failed to create post' });
   }
 });
+
+// routes/post.ts
+router.get('/:id', async (req, res) => {
+  const { id } = req.params;
+  const post = await prisma.post.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      content: true,
+      images: true,
+      author: { select: { displayName: true, avatarUrl: true } }
+    }
+  });
+  if (!post) return res.status(404).json({ error: 'not found' });
+  res.json({ post });
+});
+
 
 export default router;
 

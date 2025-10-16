@@ -2,7 +2,7 @@
 import InputField from '@/components/InputField';
 import NavBar from '@/components/NavBar'
 import Button from '@mui/material/Button';
-import { Avatar, Grid, Paper, Stack, styled } from '@mui/material';
+import { Avatar, Grid, Paper, Stack, styled, TextField } from '@mui/material';
 import { supabase } from '@/lib/supabase';
 import { useEffect, useState } from 'react';
 
@@ -16,6 +16,7 @@ type PostItem = {
 export default function Feed() {
     const [profilePic, setProfilePic] = useState<string | null>(null);
     const [posts, setPosts] = useState<Array<PostItem>>([]);
+    const [text, setText] = useState<string>("");
 
     useEffect(() => {
         async function fetchProfile() {
@@ -35,6 +36,8 @@ export default function Feed() {
         async function fetchPost() {
             try {
                 const { data: { session } } = await supabase.auth.getSession();
+                const token = session?.access_token;
+                if (!token) return;
                 const result = await fetch('http://localhost:4000/api/post', {
                     headers: { Authorization: `Bearer ${session?.access_token}` }
                 });
@@ -46,6 +49,26 @@ export default function Feed() {
             }
         }
         fetchPost();
+        const chan = supabase
+            .channel('posts-db')
+            .on('postgres_changes',
+                { event: 'INSERT', schema: 'public', table: 'Post' },
+                async (payload) => {
+                    const { data: { session } } = await supabase.auth.getSession();
+                    const id = (payload.new as any).id;
+                    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/post/${id}`, {
+                        headers: { Authorization: `Bearer ${session?.access_token}` }
+                    });
+                    const { post } = await res.json();
+                    setPosts(prev =>
+                        prev.some(p => p.id === id) ? prev : [post, ...prev]
+                    );
+                }
+            )
+            .subscribe((status) => {
+                console.log('realtime status:', status);
+            });
+        return () => { chan.unsubscribe(); };
 
     }, []);
     const Item = styled(Paper)(({ theme }) => ({
@@ -59,16 +82,50 @@ export default function Feed() {
         }),
     }));
 
+    async function createPost(e: React.FormEvent<HTMLFormElement>) {
+        e.preventDefault();
+        const content = text.trim();
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!content) return;
+        const response = await fetch('http://localhost:4000/api/post', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${session?.access_token}`
+            },
+            body: JSON.stringify({ content })
+        });
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.log(errorData);
+        } else {
+            setText('');
+        }
+    }
+
 
     return (<div className='flex flex-col items-center w-12/12'>
         <Stack spacing={5} sx={{ width: "100%" }}>
             <NavBar profilePic={profilePic} />
-            <div className="flex justify-center">
-                <InputField />
-            </div>
-            <div className=" flex justify-center">
-                <Button variant="contained">Post</Button>
-            </div>
+            <form onSubmit={createPost}>
+                <div className="flex justify-center">
+                    <TextField
+                        id="outlined-multiline-static"
+                        name="content"
+                        value={text}                        // <-- here
+                        onChange={(e) => setText(e.target.value)}
+                        label="Write what you think."
+                        sx={{ width: '50%' }}
+                        multiline
+                        rows={4}
+
+                    />
+                </div>
+                <div className=" flex justify-center">
+                    <Button type="submit" variant="contained" >Post</Button>
+                </div>
+            </form>
+
             <div className="w-12/12 px-7">
                 <Grid container spacing={{ xs: 2, md: 3 }} columns={{ xs: 4, sm: 8, md: 12 }}>
                     {posts.map((post, index) => (
@@ -76,13 +133,13 @@ export default function Feed() {
                             <Item>
                                 <div className='flex flex-col items-center gap-5'>
                                     <div className="flex justify-start w-12/12 gap-2">
-                                        <Avatar src={post.author.avatarUrl ? post.author.avatarUrl : undefined} sx={{ width: 30, height: 30 }}/>
+                                        <Avatar src={post.author.avatarUrl ? post.author.avatarUrl : undefined} sx={{ width: 30, height: 30 }} />
                                         <div className="flex items-center">
                                             {post.author.displayName}
                                         </div>
                                     </div>
                                     <div>{post.content}</div>
-                                    
+
                                 </div>
 
                             </Item>
@@ -104,3 +161,5 @@ export default function Feed() {
 
 
 }
+
+//https://kftzydommbpelfxpyvkc.supabase.co/storage/v1/object/public/avatars/
