@@ -162,4 +162,3 @@ export default function Feed() {
 
 }
 
-//https://kftzydommbpelfxpyvkc.supabase.co/storage/v1/object/public/avatars/
