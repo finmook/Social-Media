@@ -59,17 +59,23 @@ router.post('/', requireAuth, async (req, res) => {
 // routes/post.ts
 router.get('/:id', async (req, res) => {
   const { id } = req.params;
-  const post = await prisma.post.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      content: true,
-      images: true,
-      author: { select: { displayName: true, avatarUrl: true } }
-    }
-  });
-  if (!post) return res.status(404).json({ error: 'not found' });
-  res.json({ post });
+  try {
+    const post = await prisma.post.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        content: true,
+        images: true,
+        author: { select: { displayName: true, avatarUrl: true } }
+      }
+    });
+    if (!post) return res.status(404).json({ error: 'not found' });
+    res.json({ post });
+  } catch (e: any) {
+    if (e.code === 'P2023') return res.status(400).json({ error: 'invalid id' });
+    console.error(e);
+    return res.status(500).json({ error: 'internal error' });
+  }
 });
 
 

@@ -46,16 +46,18 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 autoComplete="email"
+                slotProps={{ inputLabel: { shrink: true } }}
                 fullWidth
                 variant='outlined'
               />
-              <TextField id="password" 
+              <TextField id="password"
                 label="Password"
                 type="password"
                 name="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete="current-password"
+                slotProps={{ inputLabel: { shrink: true } }}
                 fullWidth
                 variant="outlined" />
               <Button type="submit" variant="contained" disabled={loading}>

@@ -9,6 +9,20 @@ const router = Router();
 
 router.use(requireAuth);
 
+router.get('/list',async (req,res)=>{
+  const authUser= (req as any).authUser;
+  const rows=await prisma.user.findMany({
+    where: {sub:{not: authUser.id}},
+    select:{
+      id:true,
+      displayName:true,
+      handle:true,
+      avatarUrl:true,
+    },
+  });
+  res.json({users:rows});
+});
+
 router.get('/', async (req, res) => {
   const authUser = (req as any).authUser;
   const row = await prisma.user.findUnique({ where: { sub: authUser.id } });
@@ -41,6 +55,9 @@ router.post('/', requireAuth, async (req, res) => {
     return res.status(500).json({ error: 'Internal error' });
   }
 });
+
+
+
 
 
 export default router;

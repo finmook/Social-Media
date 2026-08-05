@@ -60,7 +60,7 @@ export default function RegisterPage() {
                         Register
                     </p>
                 </div>
-                <form className='flex flex-col justify-center items-center w-12/12' onSubmit={handleRegister}>
+                <form className='flex flex-col justify-center items-center w-12/12' onSubmit={handleRegister} autoComplete="off">
                     <div className="mb-4 h-3/12">
                         <div className="relative flex rounded-full bg-white w-20 h-20 items-center justify-center border-4 border-gray-300">
                             <Image
@@ -97,6 +97,7 @@ export default function RegisterPage() {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 autoComplete="email"
+                                slotProps={{ inputLabel: { shrink: true } }}
                                 fullWidth
                                 variant="outlined"
                             />
@@ -107,18 +108,19 @@ export default function RegisterPage() {
                                 name="password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                autoComplete="current-password"
+                                autoComplete="new-password"
+                                slotProps={{ inputLabel: { shrink: true } }}
                                 fullWidth
                                 variant="outlined"
                             />
                             <TextField
-                                id="display name"
-                                label="display name"
+                                id="display-name"
+                                label="display-name"
                                 type="text"
                                 name="display name"
                                 value={displayName}
                                 onChange={(e) => setDisplayName(e.target.value)}
-                                autoComplete="name"
+                                slotProps={{ inputLabel: { shrink: true } }}
                                 fullWidth
                                 variant="outlined"
                             />

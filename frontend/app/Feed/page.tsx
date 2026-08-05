@@ -5,6 +5,7 @@ import Button from '@mui/material/Button';
 import { Avatar, Grid, Paper, Stack, styled, TextField } from '@mui/material';
 import { supabase } from '@/lib/supabase';
 import { useEffect, useState } from 'react';
+import {useAuth} from '@/lib/useAuth';
 
 type PostItem = {
     id: string;
@@ -13,17 +14,21 @@ type PostItem = {
     author: { displayName: string | null; avatarUrl: string | null };
 };
 
+
 export default function Feed() {
+    const {token, loading}=useAuth();
     const [profilePic, setProfilePic] = useState<string | null>(null);
     const [posts, setPosts] = useState<Array<PostItem>>([]);
     const [text, setText] = useState<string>("");
 
     useEffect(() => {
+        
         async function fetchProfile() {
             try {
-                const { data: { session } } = await supabase.auth.getSession();
-                const result = await fetch('http://localhost:4000/api/user', {
-                    headers: { Authorization: `Bearer ${session?.access_token}` }
+                if(loading) return;
+                if(!token) return;
+                const result = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/user`, {
+                    headers: { Authorization: `Bearer ${token}` }
                 });
                 const data = await result.json();
                 console.log(data.user.avatarUrl);
@@ -35,11 +40,10 @@ export default function Feed() {
         fetchProfile();
         async function fetchPost() {
             try {
-                const { data: { session } } = await supabase.auth.getSession();
-                const token = session?.access_token;
+                if(loading) return;
                 if (!token) return;
-                const result = await fetch('http://localhost:4000/api/post', {
-                    headers: { Authorization: `Bearer ${session?.access_token}` }
+                const result = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/post`, {
+                    headers: { Authorization: `Bearer ${token}` }
                 });
                 const data = await result.json();
                 console.log(data.posts);
@@ -54,12 +58,14 @@ export default function Feed() {
             .on('postgres_changes',
                 { event: 'INSERT', schema: 'public', table: 'Post' },
                 async (payload) => {
-                    const { data: { session } } = await supabase.auth.getSession();
-                    const id = (payload.new as any).id;
+                    const id = payload.new.id as string | undefined;
+                    if (!id) return;
                     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/post/${id}`, {
-                        headers: { Authorization: `Bearer ${session?.access_token}` }
+                        headers: { Authorization: `Bearer ${token}` }
                     });
+                    if (!res.ok) return;
                     const { post } = await res.json();
+                    if (!post) return;
                     setPosts(prev =>
                         prev.some(p => p.id === id) ? prev : [post, ...prev]
                     );
@@ -68,9 +74,9 @@ export default function Feed() {
             .subscribe((status) => {
                 console.log('realtime status:', status);
             });
-        return () => { chan.unsubscribe(); };
+        return () => { supabase.removeChannel(chan); };
 
-    }, []);
+    }, [token]);
     const Item = styled(Paper)(({ theme }) => ({
         backgroundColor: '#fff',
         ...theme.typography.body2,
@@ -85,13 +91,12 @@ export default function Feed() {
     async function createPost(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
         const content = text.trim();
-        const { data: { session } } = await supabase.auth.getSession();
         if (!content) return;
-        const response = await fetch('http://localhost:4000/api/post', {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/post`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${session?.access_token}`
+                Authorization: `Bearer ${token}`
             },
             body: JSON.stringify({ content })
         });
@@ -103,7 +108,7 @@ export default function Feed() {
         }
     }
 
-
+    if(loading) return <div className="flex justify-center items-center min-h-dvh">Loading...</div>
     return (<div className='flex flex-col items-center w-12/12'>
         <Stack spacing={5} sx={{ width: "100%" }}>
             <NavBar profilePic={profilePic} />

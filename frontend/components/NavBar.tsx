@@ -13,6 +13,7 @@ import { supabase } from '@/lib/supabase';
 type Anchor = 'top';
 
 export default function NavBar(Props:any) {
+  const [cacheBust] = React.useState(() => Date.now());
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
   const router = useRouter();
@@ -92,9 +93,12 @@ export default function NavBar(Props:any) {
       <div>
         <h1>Social Media</h1>
       </div>
-      <div className='hidden md:flex flex-row w-2/12 justify-around items-center'>
-        <div className='hover:bg-blue-400 px-2 py-2 rounded-lg'>
-          <Link href="#">Contacts</Link>
+      <div className='hidden md:flex flex-row w-3/12 justify-around items-center'>
+        <div className='hover:bg-blue-400 px-1 py-2 rounded-lg'>
+          <Link href="/Feed">Feed</Link>
+        </div>
+        <div className='hover:bg-blue-400 px-1 py-2 rounded-lg'>
+          <Link href="/Contacts">Contacts</Link>
         </div>
         <Tooltip title="Account settings">
           <IconButton
@@ -105,7 +109,7 @@ export default function NavBar(Props:any) {
             aria-haspopup="true"
             aria-expanded={open ? 'true' : undefined}
           >
-            <Avatar src={Props.profilePic ? `${Props.profilePic}?ts=${Date.now()}` : undefined} sx={{ width: 32, height: 32 }}/>
+            <Avatar src={Props.profilePic ? `${Props.profilePic}?ts=${cacheBust}` : undefined} sx={{ width: 32, height: 32 }}/>
           </IconButton>
         </Tooltip>
         <Menu
@@ -146,7 +150,7 @@ export default function NavBar(Props:any) {
           anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
         >
           <MenuItem onClick={handleProfile}>
-            <Avatar src={Props.profilePic ? `${Props.profilePic}?ts=${Date.now()}` : undefined} /> Profile
+            <Avatar src={Props.profilePic ? `${Props.profilePic}?ts=${cacheBust}` : undefined} /> Profile
           </MenuItem>
           <Divider />
           <MenuItem onClick={handleLogOut}>

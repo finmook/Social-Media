@@ -8,6 +8,12 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+enum FriendshipStatus{
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
 model User {
   displayName String?
   avatarUrl   String?
@@ -17,7 +23,11 @@ model User {
   id          String   @id @default(uuid()) @db.Uuid
   handle      String?
   posts       Post[]
-  
+
+  sentFriendRequests     Friendship[] @relation("FriendshipRequester")
+  receivedFriendRequests Friendship[] @relation("FriendshipAddressee")
+  sentMessages           Message[]    @relation("MessageSender")
+  receivedMessages       Message[]    @relation("MessageReceiver")
 }
 model Post {
   id           String          @id @default(uuid()) @db.Uuid
@@ -28,5 +38,36 @@ model Post {
   likeCount    Int             @default(0)
   createdAt    DateTime        @default(now())
 }
+
+model Friendship {
+  id          String           @id @default(uuid()) @db.Uuid
+  requester   User             @relation("FriendshipRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  requesterId String           @db.Uuid
+  addressee   User             @relation("FriendshipAddressee", fields: [addresseeId], references: [id], onDelete: Cascade)
+  addresseeId String           @db.Uuid
+  status      FriendshipStatus @default(PENDING)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@unique([requesterId, addresseeId])
+}
+
+model Message {
+  id         String    @id @default(uuid()) @db.Uuid
+  sender     User      @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  senderId   String    @db.Uuid
+  receiver   User      @relation("MessageReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  receiverId String    @db.Uuid
+  content    String    @db.Text
+  readAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([senderId, receiverId])
+  @@index([receiverId, senderId])
+}
+
+
+
+
 
 
