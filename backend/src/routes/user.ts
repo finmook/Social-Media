@@ -2,6 +2,7 @@ import { Router, Request } from 'express';
 
 import { requireAuth } from '../middleware/requireAuth';
 import prisma from '../script';
+import { getSupabaseForToken } from '../lib/supabase';
 
 
 
@@ -16,7 +17,6 @@ router.get('/list',async (req,res)=>{
     select:{
       id:true,
       displayName:true,
-      handle:true,
       avatarUrl:true,
     },
   });
@@ -31,20 +31,51 @@ router.get('/', async (req, res) => {
 
 router.post('/', requireAuth, async (req, res) => {
   const u = (req as any).authUser as { id: string; email?: string };
-  const { displayName, handle, avatarUrl } = req.body;
+  const { displayName, avatarUrl: rawAvatarUrl, googleAvatarUrl } = req.body;
+
+  let avatarUrl = rawAvatarUrl ?? null;
+
+  if (googleAvatarUrl) {
+    try {
+      const token = (req.headers.authorization || '').replace('Bearer ', '');
+      const supabase = getSupabaseForToken(token);
+
+      const imgRes = await fetch(googleAvatarUrl);
+      const arrayBuffer = await imgRes.arrayBuffer();
+      const filePath = `${u.id}.jpg`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, Buffer.from(arrayBuffer), {
+          upsert: true,
+          contentType: imgRes.headers.get('content-type') ?? 'image/jpeg',
+        });
+
+      if (!uploadError) {
+        const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
+        avatarUrl = urlData.publicUrl;
+      } else {
+        console.error(uploadError);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }
 
   try {
-    
+
     const row = await prisma.user.upsert({
-      where: { sub: u.id },              
+      where: { sub: u.id },
       create: {
         sub: u.id,
-        email: u.email!,                 
+        email: u.email!,
         displayName: displayName ?? null,
-        handle: handle ?? null,
         avatarUrl: avatarUrl ?? null,
       },
-      update: {},                        
+      update: {
+        displayName: displayName ?? null,
+        avatarUrl: avatarUrl ?? null,
+      },
     });
     return res.status(201).json({ user: row });
   } catch (e: any) {

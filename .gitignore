@@ -10,5 +10,16 @@
 node_modules/
 dist/
 .next/
+*.tsbuildinfo
+
+# Environment variables / secrets
 .env
-.env.local
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# Claude Code personal settings (shared .claude/settings.json stays tracked)
+.claude/settings.local.json

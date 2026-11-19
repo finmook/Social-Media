@@ -7,6 +7,7 @@ import PersonAdd from '@mui/icons-material/PersonAdd';
 import { Logout, Settings } from '@mui/icons-material';
 import EmailIcon from '@mui/icons-material/Email';
 import MenuIcon from '@mui/icons-material/Menu';
+import ChatBubbleIcon from '@mui/icons-material/ChatBubble';
 import { grey} from '@mui/material/colors';
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase';
@@ -33,7 +34,7 @@ export default function NavBar(Props:any) {
     setAnchorEl(null);
     router.push('/Profile');
   };
-  const handlers=[handleProfile,()=>{router.push("/Contacts")}];
+  const handlers=[handleProfile,()=>{router.push("/Contacts")},()=>{router.push("/Chat")}];
     const [state, setState] = React.useState({
         top: false
     });
@@ -58,14 +59,16 @@ export default function NavBar(Props:any) {
             onKeyDown={toggleDrawer(anchor, false)}
         >
             <List>
-                {['Profile', 'Contacts'].map((text, index) => (
+                {['Profile', 'Contacts', 'Chats'].map((text, index) => (
                     <ListItem key={text} disablePadding>
                         <ListItemButton onClick={handlers[index]}>
                             <ListItemIcon>
                                 {index === 0 ? (
-                                    <Avatar src={Props.profilePic ? `${Props.profilePic}}` : undefined} sx={{ width: 30, height: 30 }} />
+                                    <Avatar src={Props.profilePic ? `${Props.profilePic}?ts=${cacheBust}` : undefined} sx={{ width: 30, height: 30 }} />
                                 ) : index === 1 ? (
                                     <EmailIcon color='primary'/>
+                                ) : index === 2 ? (
+                                    <ChatBubbleIcon color='primary'/>
                                 ) : null}
                             </ListItemIcon>
                             <ListItemText primary={text} />
@@ -99,6 +102,9 @@ export default function NavBar(Props:any) {
         </div>
         <div className='hover:bg-blue-400 px-1 py-2 rounded-lg'>
           <Link href="/Contacts">Contacts</Link>
+        </div>
+        <div className='hover:bg-blue-400 px-1 py-2 rounded-lg'>
+          <Link href="/Chat">Chats</Link>
         </div>
         <Tooltip title="Account settings">
           <IconButton

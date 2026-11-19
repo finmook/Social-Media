@@ -17,59 +17,59 @@ export default function RegisterPage() {
     const [displayName, setDisplayName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [file, setFile] = useState<File | null>(null);
-    const [preview, setPreview] = useState<string | null>(null);
+    // const [file, setFile] = useState<File | null>(null);
+    // const [preview, setPreview] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [err, setErr] = useState<string | null>(null);
-    const [handle, setHandle] = useState('');
     const router = useRouter();
-    function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
-        const f = e.target.files?.[0] ?? null;
-        setFile(f);
-        setPreview(f ? URL.createObjectURL(f) : null);
-    }
+    // function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    //     const f = e.target.files?.[0] ?? null;
+    //     setFile(f);
+    //     setPreview(f ? URL.createObjectURL(f) : null);
+    // }
     async function handleRegister(e: React.FormEvent) {
         e.preventDefault();
         setLoading(true);
         setEmail(email.trim());
         setPassword(password.trim());
-        const { data, error } = await supabase.auth.signUp({
+        const { error } = await supabase.auth.signUp({
             email, password,
-            options: { data: { displayName, handle } },
+            options: { data: { displayName } },
         });
-        if (error) { alert(error.message); setLoading(false); return; }
-        if (data.session) {
-            await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/user`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${data.session.access_token}`,
-                },
-                body: JSON.stringify({ displayName, handle }),
-            });
-            router.push('/');
-        } else {
-            router.push('/Login');
-        }
+        setLoading(false);
+        if (error) { alert(error.message); return; }
+        alert('Check your email to confirm your account, then log in.');
+        router.push('/Login');
     }
     return (
         <div className="flex flex-col justify-center items-center h-dvh w-12/12">
-            <Paper sx={{ width: { xs: "100%", sm: 600 }, px: 2, height: { sm: 600 } }} elevation={3} className='flex flex-col justify-center items-center'>
-                <div className="my-3 w-12/12 h-2/12  flex flex-col justify-center items-center">
-                    <p className="font-bold text-xl my-0.5">
+            <Paper sx={{ width: { xs: "100%", sm: 500 }, px: 2, height: { sm: 500 } }} elevation={3} className='flex flex-col justify-center items-center'>
+                <div className="my-1 w-12/12 h-2/12  flex flex-col justify-center items-center">
+                    <p className="font-bold text-xl">
                         Register
                     </p>
                 </div>
                 <form className='flex flex-col justify-center items-center w-12/12' onSubmit={handleRegister} autoComplete="off">
-                    <div className="mb-4 h-3/12">
+                    {/* <div className="mb-4 h-3/12">
                         <div className="relative flex rounded-full bg-white w-20 h-20 items-center justify-center border-4 border-gray-300">
-                            <Image
-                                alt="Profile Picture"
-                                src={`/user.svg`}
-                                width={70}
-                                height={70}
-                                className="rounded-full"
-                            />
+                            {preview ? (
+                                <img
+                                    alt="Profile Picture"
+                                    src={preview}
+                                    width={70}
+                                    height={70}
+                                    className="rounded-full object-cover"
+                                    style={{ width: 70, height: 70 }}
+                                />
+                            ) : (
+                                <Image
+                                    alt="Profile Picture"
+                                    src="/user.svg"
+                                    width={70}
+                                    height={70}
+                                    className="rounded-full"
+                                />
+                            )}
                             <input
                                 type="file"
                                 id="profilePic"
@@ -86,8 +86,8 @@ export default function RegisterPage() {
                             </label>
                         </div>
 
-                    </div>
-                    <div className='w-5/12 h-10/12'>
+                    </div> */}
+                    <div className='w-6/12 h-10/12'>
                         <Stack direction="column" spacing={2}>
                             <TextField
                                 id="email"

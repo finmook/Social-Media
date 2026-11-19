@@ -19,13 +19,37 @@ export default function LoginPage() {
     setErr(null);
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+    if (error) {
+      setLoading(false);
+      return setErr(error.message);
+    }
+
+    const token = data.session?.access_token;
+    if (token) {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/user`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const { user } = await res.json();
+
+      if (!user) {
+        const meta = data.session.user.user_metadata || {};
+        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/user`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            displayName: meta.displayName ?? '',
+          }),
+        });
+      }
+    }
 
     setLoading(false);
-    if (error) return setErr(error.message);
-
-    
-    router.push('/Feed'); 
+    router.push('/Feed');
   }
   return (
     <div className="flex flex-col justify-center items-center h-dvh w-12/12">

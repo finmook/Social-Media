@@ -9,7 +9,6 @@ import {useAuth} from '@/lib/useAuth';
 type Contact = {
     id: string;
     displayName: string| null;
-    handle: string | null;
     avatarUrl: string | null;
 };
 
@@ -88,7 +87,7 @@ export default function Contacts(){
         }
     }
 
-    const filtered = contacts.filter((c)=> `${c.displayName ?? ''} ${c.handle ?? ''}`.toLowerCase().includes(query.toLowerCase()));
+    const filtered = contacts.filter((c)=> (c.displayName ?? '').toLowerCase().includes(query.toLowerCase()));
     if(loading) return <div>Loading...</div>
     return (
         <div className="flex flex-col items-center w-12/12">
@@ -115,7 +114,6 @@ export default function Contacts(){
                                                 </ListItemAvatar>
                                                 <ListItemText
                                                     primary={r.requester.displayName ?? 'Unnamed'}
-                                                    secondary={r.requester.handle ? `@${r.requester.handle}` : undefined}
                                                 />
                                             </ListItem>
                                         ))}
@@ -153,7 +151,6 @@ export default function Contacts(){
                                         </ListItemAvatar>
                                         <ListItemText
                                             primary={contact.displayName ?? 'Unnamed'}
-                                            secondary={contact.handle ? `@${contact.handle}` : undefined}
                                         />
                                     </ListItem>
                                 )})}

@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase';
 export default function Callback() {
   const router = useRouter();
   const q = useSearchParams();
-  
+
   useEffect(() => {
     (async () => {
       const code = q.get('code');
@@ -19,26 +19,28 @@ export default function Callback() {
       }
 
       const { data: { session } } = await supabase.auth.getSession();
-      console.log(session);
-      console.log('token prefix:', session?.access_token?.slice(0, 25)); 
       if (session) {
-        
-       
-          const meta = session.user.user_metadata || {};
-          await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/user`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            displayName: meta.name ?? meta.full_name ?? '',
-            handle: meta.handle ?? '',
-            avatarUrl: meta.avatar_url ?? null,
-          }),
+        const token = session.access_token;
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/user`, {
+          headers: { Authorization: `Bearer ${token}` },
         });
-        
-        
+        const { user } = await res.json();
+
+        if (!user) {
+          const meta = session.user.user_metadata || {};
+
+          await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/user`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              displayName: meta.name ?? meta.full_name ?? '',
+              googleAvatarUrl: meta.avatar_url ?? null,
+            }),
+          });
+        }
       }
       router.push('/Feed');
     })();
