@@ -42,7 +42,8 @@ router.post('/', requireAuth, async (req, res) => {
 
       const imgRes = await fetch(googleAvatarUrl);
       const arrayBuffer = await imgRes.arrayBuffer();
-      const filePath = `${u.id}.jpg`;
+      // Must live in a folder named after the auth user id (see supabase/storage-policies.sql)
+      const filePath = `${u.id}/google-avatar-${Date.now()}.jpg`;
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')

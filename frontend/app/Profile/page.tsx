@@ -15,12 +15,23 @@ type UserProfile = {
 };
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
+
+/** Remove every file in the user's avatar folder except the one just uploaded. */
+async function deleteOldAvatars(authId: string, keepPath: string) {
+    const { data, error } = await supabase.storage.from('avatars').list(authId, { limit: 100 });
+    if (error) return console.error(error);
+    const old = (data ?? []).map((f) => `${authId}/${f.name}`).filter((p) => p !== keepPath);
+    if (old.length === 0) return;
+    const { error: removeError } = await supabase.storage.from('avatars').remove(old);
+    if (removeError) console.error(removeError);
+}
 
 const inputCls =
     'h-11 w-full rounded-xl border border-line bg-surface-2 px-4 text-[15px] text-fg outline-none transition placeholder:text-subtle focus:border-primary focus:bg-surface focus:ring-4 focus:ring-primary/15 disabled:cursor-not-allowed disabled:opacity-70';
 
 export default function Profile() {
-    const { token, loading } = useAuth();
+    const { token, session, loading } = useAuth();
     const [user, setUser] = useState<UserProfile | null>(null);
     const [displayName, setDisplayName] = useState('');
     const [saving, setSaving] = useState(false);
@@ -52,18 +63,29 @@ export default function Profile() {
 
         let avatarUrl = user.avatarUrl;
 
-        if (file) {
-            const ext = file.name.split('.').pop();
-            const filePath = `${user.id}.${ext}`;
-            const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file, { upsert: true });
+        let uploadedPath: string | null = null;
+        const authId = session?.user.id;
 
-            if (!uploadError) {
-                const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
-                avatarUrl = urlData.publicUrl;
-            } else {
-                console.error(uploadError);
-                setNotice({ type: 'error', text: 'Could not upload the photo.' });
+        if (file) {
+            if (!authId) {
+                setSaving(false);
+                return setNotice({ type: 'error', text: 'Your session expired. Please sign in again.' });
             }
+            // Storage rules only allow writing inside a folder named after your auth id.
+            // A new file name each time also stops browsers from showing a cached old photo.
+            const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+            const filePath = `${authId}/avatar-${Date.now()}.${ext}`;
+            const { error: uploadError } = await supabase.storage
+                .from('avatars')
+                .upload(filePath, file, { contentType: file.type, cacheControl: '31536000' });
+
+            if (uploadError) {
+                console.error(uploadError);
+                setSaving(false);
+                return setNotice({ type: 'error', text: `Could not upload the photo: ${uploadError.message}` });
+            }
+            avatarUrl = supabase.storage.from('avatars').getPublicUrl(filePath).data.publicUrl;
+            uploadedPath = filePath;
         }
 
         const res = await fetch(`${API_URL}/api/user`, {
@@ -78,8 +100,11 @@ export default function Profile() {
             setFile(null);
             setPreview(null);
             setNotice((n) => n ?? { type: 'ok', text: 'Profile saved.' });
+            if (uploadedPath && authId) await deleteOldAvatars(authId, uploadedPath);
         } else {
             setNotice({ type: 'error', text: 'Could not save your profile.' });
+            // Profile wasn't updated, so the new file is unused
+            if (uploadedPath) await supabase.storage.from('avatars').remove([uploadedPath]);
         }
 
         setSaving(false);
@@ -87,6 +112,14 @@ export default function Profile() {
 
     function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
         const f = e.target.files?.[0] ?? null;
+        e.target.value = '';
+        if (f && !f.type.startsWith('image/')) {
+            return setNotice({ type: 'error', text: 'Please choose an image file.' });
+        }
+        if (f && f.size > MAX_AVATAR_BYTES) {
+            return setNotice({ type: 'error', text: 'Image must be 5 MB or smaller.' });
+        }
+        setNotice(null);
         setFile(f);
         setPreview(f ? URL.createObjectURL(f) : null);
     }
