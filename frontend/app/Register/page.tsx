@@ -1,139 +1,119 @@
 'use client'
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import TextField from '@mui/material/TextField';
-import { Paper, Stack, Button } from '@mui/material';
 import Link from 'next/link';
-import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
-
-interface Profile {
-    fullName: string;
-    email: string;
-    profilePic: string;
-}
+import GoogleButton from '@/components/GoogleButton';
+import AuthShell, { authInput, authLabel, authPrimaryBtn, OrDivider } from '@/components/AuthShell';
 
 export default function RegisterPage() {
-    const [displayName, setDisplayName] = useState("");
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    // const [file, setFile] = useState<File | null>(null);
-    // const [preview, setPreview] = useState<string | null>(null);
+    const [displayName, setDisplayName] = useState('');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [err, setErr] = useState<string | null>(null);
-    const router = useRouter();
-    // function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
-    //     const f = e.target.files?.[0] ?? null;
-    //     setFile(f);
-    //     setPreview(f ? URL.createObjectURL(f) : null);
-    // }
+    const [done, setDone] = useState(false);
+
     async function handleRegister(e: React.FormEvent) {
         e.preventDefault();
+        setErr(null);
         setLoading(true);
-        setEmail(email.trim());
-        setPassword(password.trim());
         const { error } = await supabase.auth.signUp({
-            email, password,
-            options: { data: { displayName } },
+            email: email.trim(),
+            password: password.trim(),
+            options: {
+                data: { displayName: displayName.trim() },
+                emailRedirectTo: `${window.location.origin}/Login`,
+            },
         });
         setLoading(false);
-        if (error) { alert(error.message); return; }
-        alert('Check your email to confirm your account, then log in.');
-        router.push('/Login');
+        if (error) return setErr(error.message);
+        setDone(true);
     }
-    return (
-        <div className="flex flex-col justify-center items-center h-dvh w-12/12">
-            <Paper sx={{ width: { xs: "100%", sm: 500 }, px: 2, height: { sm: 500 } }} elevation={3} className='flex flex-col justify-center items-center'>
-                <div className="my-1 w-12/12 h-2/12  flex flex-col justify-center items-center">
-                    <p className="font-bold text-xl">
-                        Register
+
+    if (done) {
+        return (
+            <AuthShell>
+                <div>
+                    <h1 className="text-2xl font-bold text-fg">Check your email</h1>
+                    <p className="mt-2 text-sm text-muted">
+                        We sent a confirmation link to <span className="font-medium text-fg">{email.trim()}</span>.
+                        Confirm your account, then sign in.
                     </p>
+                    <Link href="/Login" className={`${authPrimaryBtn} mt-8`}>
+                        Go to sign in
+                    </Link>
                 </div>
-                <form className='flex flex-col justify-center items-center w-12/12' onSubmit={handleRegister} autoComplete="off">
-                    {/* <div className="mb-4 h-3/12">
-                        <div className="relative flex rounded-full bg-white w-20 h-20 items-center justify-center border-4 border-gray-300">
-                            {preview ? (
-                                <img
-                                    alt="Profile Picture"
-                                    src={preview}
-                                    width={70}
-                                    height={70}
-                                    className="rounded-full object-cover"
-                                    style={{ width: 70, height: 70 }}
-                                />
-                            ) : (
-                                <Image
-                                    alt="Profile Picture"
-                                    src="/user.svg"
-                                    width={70}
-                                    height={70}
-                                    className="rounded-full"
-                                />
-                            )}
-                            <input
-                                type="file"
-                                id="profilePic"
-                                name="profilePic"
-                                className="hidden"
-                                accept="image/*"
-                                onChange={handleChange}
-                            />
-                            <label
-                                htmlFor="profilePic"
-                                className="absolute -bottom-1 -right-1 cursor-pointer rounded-full bg-white p-2 shadow ring-2 ring-white"
-                            >
-                                <Image alt="camera icon" src="/Camera.svg" width={20} height={20} />
-                            </label>
-                        </div>
+            </AuthShell>
+        );
+    }
 
-                    </div> */}
-                    <div className='w-6/12 h-10/12'>
-                        <Stack direction="column" spacing={2}>
-                            <TextField
-                                id="email"
-                                label="Email"
-                                type="email"
-                                name="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                autoComplete="email"
-                                slotProps={{ inputLabel: { shrink: true } }}
-                                fullWidth
-                                variant="outlined"
-                            />
-                            <TextField
-                                id="password"
-                                label="Password"
-                                type="password"
-                                name="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                autoComplete="new-password"
-                                slotProps={{ inputLabel: { shrink: true } }}
-                                fullWidth
-                                variant="outlined"
-                            />
-                            <TextField
-                                id="display-name"
-                                label="display-name"
-                                type="text"
-                                name="display name"
-                                value={displayName}
-                                onChange={(e) => setDisplayName(e.target.value)}
-                                slotProps={{ inputLabel: { shrink: true } }}
-                                fullWidth
-                                variant="outlined"
-                            />
+    return (
+        <AuthShell
+            footer={
+                <>
+                    Already have an account?{' '}
+                    <Link href="/Login" className="font-medium text-accent hover:underline">Sign in</Link>
+                </>
+            }
+        >
+            <h1 className="text-2xl font-bold text-fg sm:text-3xl">Create your account</h1>
+            <p className="mt-2 text-muted">Join and start connecting with friends.</p>
 
-                            <Button type='submit' variant="contained">{loading ? 'Signing up…' : 'Sign Up'}</Button>
-                            <Link href="/Login" className='text-xs text-center'>Already have an account? Sign In.</Link>
-                        </Stack>
-                    </div>
-                </form>
+            <form onSubmit={handleRegister} className="mt-8 flex flex-col gap-4">
+                <div>
+                    <label htmlFor="display-name" className={authLabel}>Display name</label>
+                    <input
+                        id="display-name"
+                        type="text"
+                        required
+                        value={displayName}
+                        onChange={(e) => setDisplayName(e.target.value)}
+                        autoComplete="nickname"
+                        placeholder="How friends will see you"
+                        className={authInput}
+                    />
+                </div>
+                <div>
+                    <label htmlFor="email" className={authLabel}>Email</label>
+                    <input
+                        id="email"
+                        type="email"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        autoComplete="email"
+                        placeholder="you@example.com"
+                        className={authInput}
+                    />
+                </div>
+                <div>
+                    <label htmlFor="password" className={authLabel}>Password</label>
+                    <input
+                        id="password"
+                        type="password"
+                        required
+                        minLength={6}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        autoComplete="new-password"
+                        placeholder="At least 6 characters"
+                        className={authInput}
+                    />
+                </div>
 
-            </Paper>
+                {err && (
+                    <p role="alert" className="rounded-xl bg-danger-soft px-4 py-2.5 text-sm text-danger ring-1 ring-danger">
+                        {err}
+                    </p>
+                )}
 
+                <button type="submit" disabled={loading} className={authPrimaryBtn}>
+                    {loading ? 'Creating account…' : 'Create account'}
+                </button>
+                <OrDivider />
+                <GoogleButton />
+            </form>
 
-        </div>
+        </AuthShell>
     );
 }

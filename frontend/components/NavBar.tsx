@@ -1,191 +1,129 @@
 "use client"
-import * as React from 'react';
-import Avatar from '@mui/material/Avatar';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Box, Divider, Drawer, IconButton, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Menu, MenuItem, Tooltip } from '@mui/material';
-import PersonAdd from '@mui/icons-material/PersonAdd';
-import { Logout, Settings } from '@mui/icons-material';
-import EmailIcon from '@mui/icons-material/Email';
-import MenuIcon from '@mui/icons-material/Menu';
-import ChatBubbleIcon from '@mui/icons-material/ChatBubble';
-import { grey} from '@mui/material/colors';
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation';
+import { Avatar } from '@mui/material';
+import ForumRoundedIcon from '@mui/icons-material/ForumRounded';
+import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
+import PeopleAltRoundedIcon from '@mui/icons-material/PeopleAltRounded';
+import ChatBubbleRoundedIcon from '@mui/icons-material/ChatBubbleRounded';
+import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
+import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import { supabase } from '@/lib/supabase';
-type Anchor = 'top';
+import { ThemeToggleButton } from '@/lib/theme';
 
-export default function NavBar(Props:any) {
-  const [cacheBust] = React.useState(() => Date.now());
-  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
-  const open = Boolean(anchorEl);
+type Props = {
+  profilePic?: string | null;
+};
+
+const links = [
+  { href: '/Feed', label: 'Feed', Icon: HomeRoundedIcon },
+  { href: '/Contacts', label: 'Contacts', Icon: PeopleAltRoundedIcon },
+  { href: '/Chat', label: 'Chats', Icon: ChatBubbleRoundedIcon },
+];
+
+export default function NavBar({ profilePic }: Props) {
+  const pathname = usePathname();
   const router = useRouter();
-  const handleClick = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-  const handleClose = () => {
-    setAnchorEl(null);
-  }
-  const handleLogOut = async () => {
-    setAnchorEl(null);
+  const [cacheBust] = useState(() => Date.now());
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setMenuOpen(false);
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [menuOpen]);
+
+  async function handleLogOut() {
+    setMenuOpen(false);
     const { error } = await supabase.auth.signOut();
-    if (error) console.log(error);
+    if (error) console.error(error);
     router.push('/');
-  };
-  const handleProfile = () => {
-    setAnchorEl(null);
-    router.push('/Profile');
-  };
-  const handlers=[handleProfile,()=>{router.push("/Contacts")},()=>{router.push("/Chat")}];
-    const [state, setState] = React.useState({
-        top: false
-    });
-    const toggleDrawer =
-        (anchor: Anchor, open: boolean) =>
-            (event: React.KeyboardEvent | React.MouseEvent) => {
-                if (
-                    event.type === 'keydown' &&
-                    ((event as React.KeyboardEvent).key === 'Tab' ||
-                        (event as React.KeyboardEvent).key === 'Shift')
-                ) {
-                    return;
-                }
+  }
 
-                setState({ ...state, [anchor]: open });
-            };
-    const list = (anchor: Anchor) => (
-        <Box
-            sx={{ width: anchor === 'top' || anchor === 'bottom' ? 'auto' : 250 }}
-            role="presentation"
-            onClick={toggleDrawer(anchor, false)}
-            onKeyDown={toggleDrawer(anchor, false)}
-        >
-            <List>
-                {['Profile', 'Contacts', 'Chats'].map((text, index) => (
-                    <ListItem key={text} disablePadding>
-                        <ListItemButton onClick={handlers[index]}>
-                            <ListItemIcon>
-                                {index === 0 ? (
-                                    <Avatar src={Props.profilePic ? `${Props.profilePic}?ts=${cacheBust}` : undefined} sx={{ width: 30, height: 30 }} />
-                                ) : index === 1 ? (
-                                    <EmailIcon color='primary'/>
-                                ) : index === 2 ? (
-                                    <ChatBubbleIcon color='primary'/>
-                                ) : null}
-                            </ListItemIcon>
-                            <ListItemText primary={text} />
-                        </ListItemButton>
-                    </ListItem>
-                ))}
-            </List>
-            <Divider />
-            <List>
-                {['Log Out'].map((text) => (
-                    <ListItem key={text} disablePadding>
-                        <ListItemButton onClick={handleLogOut}>
-                            <ListItemIcon>
-                                <Logout fontSize="small" color='primary' />
-                            </ListItemIcon>
-                            <ListItemText primary={text} />
-                        </ListItemButton>
-                    </ListItem>
-                ))}
-            </List>
-        </Box>
-    );
+  const avatarSrc = profilePic ? `${profilePic}?ts=${cacheBust}` : undefined;
+
   return (
-    <div className="flex flex-row bg-blue-500 text-white py-3 px-2 items-center justify-between">
-      <div>
-        <h1>Social Media</h1>
-      </div>
-      <div className='hidden md:flex flex-row w-3/12 justify-around items-center'>
-        <div className='hover:bg-blue-400 px-1 py-2 rounded-lg'>
-          <Link href="/Feed">Feed</Link>
-        </div>
-        <div className='hover:bg-blue-400 px-1 py-2 rounded-lg'>
-          <Link href="/Contacts">Contacts</Link>
-        </div>
-        <div className='hover:bg-blue-400 px-1 py-2 rounded-lg'>
-          <Link href="/Chat">Chats</Link>
-        </div>
-        <Tooltip title="Account settings">
-          <IconButton
-            onClick={handleClick}
-            size="small"
-            sx={{ ml: 2 }}
-            aria-controls={open ? 'account-menu' : undefined}
-            aria-haspopup="true"
-            aria-expanded={open ? 'true' : undefined}
-          >
-            <Avatar src={Props.profilePic ? `${Props.profilePic}?ts=${cacheBust}` : undefined} sx={{ width: 32, height: 32 }}/>
-          </IconButton>
-        </Tooltip>
-        <Menu
-          anchorEl={anchorEl}
-          id="account-menu"
-          open={open}
-          onClose={handleClose}
-          onClick={handleClose}
-          slotProps={{
-            paper: {
-              elevation: 0,
-              sx: {
-                overflow: 'visible',
-                filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.32))',
-                mt: 1.5,
-                '& .MuiAvatar-root': {
-                  width: 32,
-                  height: 32,
-                  ml: -0.5,
-                  mr: 1,
-                },
-                '&::before': {
-                  content: '""',
-                  display: 'block',
-                  position: 'absolute',
-                  top: 0,
-                  right: 14,
-                  width: 10,
-                  height: 10,
-                  bgcolor: 'background.paper',
-                  transform: 'translateY(-50%) rotate(45deg)',
-                  zIndex: 0,
-                },
-              },
-            },
-          }}
-          transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-          anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-        >
-          <MenuItem onClick={handleProfile}>
-            <Avatar src={Props.profilePic ? `${Props.profilePic}?ts=${cacheBust}` : undefined} /> Profile
-          </MenuItem>
-          <Divider />
-          <MenuItem onClick={handleLogOut}>
-            <ListItemIcon>
-              <Logout color='primary' fontSize="small" />
-            </ListItemIcon>
-            Logout
-          </MenuItem>
-        </Menu>
+    <header className="sticky top-0 z-40 border-b border-line bg-surface/85 backdrop-blur-md">
+      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-2 px-3 sm:px-6">
+        <Link href="/Feed" className="flex items-center gap-2 font-semibold text-fg">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-white">
+            <ForumRoundedIcon sx={{ fontSize: 18 }} />
+          </span>
+          <span className="hidden sm:inline">Social Media</span>
+        </Link>
 
-      </div>
-      <div className="md:hidden flex flex-row w-2/12 justify-end items-center">
-          {(['top'] as const).map((anchor) => (
-                    <React.Fragment key={anchor}>
-                        <IconButton size="small" sx={{ ml: 2 }} onClick={toggleDrawer(anchor, true)}>
-                            <MenuIcon sx={{ color:grey[50] }} />
-                        </IconButton>
-                        <Drawer
-                            anchor={anchor}
-                            open={state[anchor]}
-                            onClose={toggleDrawer(anchor, false)}
-                        >
-                            {list(anchor)}
-                        </Drawer>
-                    </React.Fragment>
-                ))}
-      </div>
+        <nav className="flex items-center gap-1">
+          {links.map(({ href, label, Icon }) => {
+            const active = pathname === href || pathname.startsWith(`${href}/`);
+            return (
+              <Link
+                key={href}
+                href={href}
+                aria-label={label}
+                aria-current={active ? 'page' : undefined}
+                className={`flex h-9 items-center gap-2 rounded-full px-3 text-sm font-medium transition ${
+                  active ? 'bg-primary-soft text-accent' : 'text-muted hover:bg-surface-2 hover:text-fg'
+                }`}
+              >
+                <Icon sx={{ fontSize: 20 }} />
+                <span className="hidden md:inline">{label}</span>
+              </Link>
+            );
+          })}
+        </nav>
 
-
-    </div>
-  )
+        <div className="flex items-center gap-1">
+          <ThemeToggleButton />
+          <div className="relative" ref={menuRef}>
+            <button
+              type="button"
+              onClick={() => setMenuOpen((o) => !o)}
+              aria-label="Account menu"
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              className="flex h-9 w-9 items-center justify-center rounded-full ring-primary/40 transition hover:ring-2 focus-visible:ring-2 focus-visible:outline-none"
+            >
+              <Avatar src={avatarSrc} sx={{ width: 32, height: 32, bgcolor: 'var(--primary)' }} />
+            </button>
+            {menuOpen && (
+              <div
+                role="menu"
+                className="absolute right-0 mt-2 w-48 overflow-hidden rounded-xl border border-line bg-surface py-1 shadow-xl shadow-black/10"
+              >
+                <Link
+                  href="/Profile"
+                  role="menuitem"
+                  onClick={() => setMenuOpen(false)}
+                  className="flex items-center gap-3 px-4 py-2.5 text-sm text-fg hover:bg-surface-2"
+                >
+                  <PersonRoundedIcon sx={{ fontSize: 20 }} className="text-muted" />
+                  Profile
+                </Link>
+                <div className="my-1 h-px bg-line" />
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={handleLogOut}
+                  className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-danger hover:bg-surface-2"
+                >
+                  <LogoutRoundedIcon sx={{ fontSize: 20 }} />
+                  Log out
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </header>
+  );
 }

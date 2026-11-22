@@ -10,16 +10,14 @@ export default function GoogleButton() {
   const signIn = async () => {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: 'http://localhost:3000/auth/callback' }
+      options: { redirectTo: `${window.location.origin}/auth/callback` }
     });
-    const {data:{user}}=await supabase.auth.getUser();
-    
     if (error) return console.error(error);
     if (data?.url) window.location.assign(data.url);
   };
 
   return (
-    <button onClick={signIn} className="gsi-material-button">
+    <button type="button" onClick={signIn} className="gsi-material-button">
   <div className="gsi-material-button-state"></div>
   <div className="gsi-material-button-content-wrapper">
     <div className="gsi-material-button-icon">

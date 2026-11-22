@@ -2,8 +2,7 @@
 import { useState } from 'react';
 
 import GoogleButton from '@/components/GoogleButton';
-import TextField from '@mui/material/TextField';
-import { Paper, Stack, Button, Divider } from '@mui/material';
+import AuthShell, { authInput, authLabel, authPrimaryBtn, OrDivider } from '@/components/AuthShell';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
@@ -52,48 +51,60 @@ export default function LoginPage() {
     router.push('/Feed');
   }
   return (
-    <div className="flex flex-col justify-center items-center h-dvh w-12/12">
-      <Paper sx={{ width: { xs: "100%", sm: 600 }, py: 3, px: 3, height: { sm: 500 } }} elevation={3} className='flex flex-col justify-center items-center'>
-        <div className="w-12/12 h-4/12 flex justify-center items-center my-3">
-          <h1 className="font-bold text-xl">
-            Login
-          </h1>
-        </div>
-        <div className='w-5/12 h-10/12'>
-          <form onSubmit={handleSubmit}>
-            <Stack direction="column" spacing={2}>
-              <TextField
-                id="email"
-                label="Email"
-                type="email"
-                name="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoComplete="email"
-                slotProps={{ inputLabel: { shrink: true } }}
-                fullWidth
-                variant='outlined'
-              />
-              <TextField id="password"
-                label="Password"
-                type="password"
-                name="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
-                slotProps={{ inputLabel: { shrink: true } }}
-                fullWidth
-                variant="outlined" />
-              <Button type="submit" variant="contained" disabled={loading}>
-                {loading ? 'Signing in…' : 'Sign In'}
-              </Button>
-              <Link href="/Register" className='text-xs text-center'>Don't have an account? Sign up.</Link>
-            </Stack>
-          </form>
-        </div>
-      </Paper>
+    <AuthShell
+      footer={
+        <>
+          Don&apos;t have an account?{' '}
+          <Link href="/Register" className="font-medium text-accent hover:underline">Sign up</Link>
+        </>
+      }
+    >
+      <h1 className="text-2xl font-bold text-fg sm:text-3xl">Welcome back</h1>
+      <p className="mt-2 text-muted">Sign in to continue to your feed.</p>
 
+      <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4">
+        <div>
+          <label htmlFor="email" className={authLabel}>Email</label>
+          <input
+            id="email"
+            type="email"
+            name="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
+            placeholder="you@example.com"
+            className={authInput}
+          />
+        </div>
+        <div>
+          <label htmlFor="password" className={authLabel}>Password</label>
+          <input
+            id="password"
+            type="password"
+            name="password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="current-password"
+            placeholder="••••••••"
+            className={authInput}
+          />
+        </div>
 
-    </div>
+        {err && (
+          <p role="alert" className="rounded-xl bg-danger-soft px-4 py-2.5 text-sm text-danger ring-1 ring-danger">
+            {err}
+          </p>
+        )}
+
+        <button type="submit" disabled={loading} className={authPrimaryBtn}>
+          {loading ? 'Signing in…' : 'Sign in'}
+        </button>
+        <OrDivider />
+        <GoogleButton />
+      </form>
+
+    </AuthShell>
   );
 }

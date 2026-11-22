@@ -2,6 +2,7 @@ import { Router, Request } from 'express';
 
 import { requireAuth } from '../middleware/requireAuth';
 import prisma from '../script';
+import { broadcast, FEED_TOPIC } from '../lib/realtime';
 
 const router = Router();
 
@@ -14,6 +15,7 @@ router.get('/', async (req, res) => {
       id: true,
       content: true,
       images: true,                 // string[]
+      createdAt: true,
       author: { select: { displayName: true, avatarUrl: true } }
     }
   });
@@ -47,7 +49,17 @@ router.post('/', requireAuth, async (req, res) => {
         images: Array.isArray(images) ? images : [],
         // likeCount uses default(0); createdAt uses default(now())
       },
+      select: {
+        id: true,
+        content: true,
+        images: true,
+        createdAt: true,
+        author: { select: { displayName: true, avatarUrl: true } },
+      },
     });
+
+    // Realtime: everyone on the feed gets the new post (Supabase Broadcast, free tier)
+    await broadcast([{ topic: FEED_TOPIC, event: 'post', payload: post }]);
 
     return res.status(201).json({ post });
   } catch (e: any) {
@@ -66,6 +78,7 @@ router.get('/:id', async (req, res) => {
         id: true,
         content: true,
         images: true,
+        createdAt: true,
         author: { select: { displayName: true, avatarUrl: true } }
       }
     });

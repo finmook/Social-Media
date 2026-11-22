@@ -1,10 +1,18 @@
-// frontend/app/auth/callback/page.tsx
 'use client';
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
-export default function Callback() {
+function Spinner() {
+  return (
+    <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-bg">
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      <p className="text-sm text-muted">Finishing sign in…</p>
+    </div>
+  );
+}
+
+function CallbackInner() {
   const router = useRouter();
   const q = useSearchParams();
 
@@ -13,9 +21,11 @@ export default function Callback() {
       const code = q.get('code');
       if (code) {
         const { error } = await supabase.auth.exchangeCodeForSession(code);
-        if (error) { console.error(error); return; }
-      } else {
-        await supabase.auth.getSession();
+        if (error) {
+          console.error(error);
+          router.push('/Login');
+          return;
+        }
       }
 
       const { data: { session } } = await supabase.auth.getSession();
@@ -28,7 +38,6 @@ export default function Callback() {
 
         if (!user) {
           const meta = session.user.user_metadata || {};
-
           await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/user`, {
             method: 'POST',
             headers: {
@@ -46,5 +55,13 @@ export default function Callback() {
     })();
   }, [q, router]);
 
-  return <p className="flex justify-center items-center min-h-dvh ">Finishing sign in…</p>;
+  return <Spinner />;
+}
+
+export default function Callback() {
+  return (
+    <Suspense fallback={<Spinner />}>
+      <CallbackInner />
+    </Suspense>
+  );
 }

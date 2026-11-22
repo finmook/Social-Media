@@ -1,37 +1,23 @@
-'use client';
-import { useEffect } from 'react';
-import Link from 'next/link'
-import { supabase } from '@/lib/supabase';
-import * as React from 'react';
-import Button from '@mui/material/Button';
-import Stack from '@mui/material/Stack';
-import Paper from '@mui/material/Paper';
-import { Divider } from '@mui/material';
+import Link from 'next/link';
 import GoogleButton from '@/components/GoogleButton';
+import AuthShell, { authPrimaryBtn, authSecondaryBtn, OrDivider } from '@/components/AuthShell';
 
 export default function Home() {
-  
-  return <main className='min-h-dvh'>
-    <div className="flex flex-col justify-center items-center h-dvh w-12/12">
-    <Paper sx={{ width: { xs: "100%", sm: 600 }, py: 3 ,px:3,height:{sm: 350}}} elevation={3} className='flex flex-col justify-center items-center'>
-      <div className="w-12/12 h-4/12 flex justify-center items-center my-8">
-        <h1 className="font-bold text-xl">
-          Welcome to my Social Media website!
-        </h1>
-      </div>
-      <div className='w-5/12 h-10/12' >
-        <Stack direction="column" spacing={2}>
-          <Button variant="outlined" href="/Login">Sign In</Button>
-          <Button variant="contained" href="/Register" color="primary">Sign Up</Button>
-          <Divider>or sign in with</Divider>
-              <GoogleButton />
-        </Stack>
-      </div>
-    </Paper>
+  return (
+    <AuthShell>
+      <h1 className="text-2xl font-bold text-fg sm:text-3xl">Welcome</h1>
+      <p className="mt-2 text-muted">Sign in to see what your friends are up to.</p>
 
-
-  </div>;
-  </main>
-  
-  
+      <div className="mt-8 flex flex-col gap-3">
+        <Link href="/Login" className={authPrimaryBtn}>
+          Sign in
+        </Link>
+        <Link href="/Register" className={authSecondaryBtn}>
+          Create an account
+        </Link>
+        <OrDivider />
+        <GoogleButton />
+      </div>
+    </AuthShell>
+  );
 }

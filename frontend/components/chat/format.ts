@@ -41,3 +41,21 @@ export function formatDayLabel(iso: string) {
 export function displayName(user: { displayName: string | null } | null | undefined) {
     return user?.displayName?.trim() || 'Unnamed';
 }
+
+/** "just now", "5m", "3h", "2d", then a date. */
+export function timeAgo(iso: string) {
+    const diff = Date.now() - new Date(iso).getTime();
+    const min = Math.floor(diff / 60000);
+    if (min < 1) return 'just now';
+    if (min < 60) return `${min}m`;
+    const hours = Math.floor(min / 60);
+    if (hours < 24) return `${hours}h`;
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days}d`;
+    const d = new Date(iso);
+    return d.toLocaleDateString([], {
+        month: 'short',
+        day: 'numeric',
+        ...(d.getFullYear() !== new Date().getFullYear() ? { year: 'numeric' } : {}),
+    });
+}

@@ -24,24 +24,24 @@ export default function ConversationList({ conversations, loading, myId, activeF
     return (
         <div className="flex h-full min-h-0 flex-col">
             <div className="flex items-center justify-between px-5 pt-5 pb-3">
-                <h2 className="text-2xl font-semibold text-slate-900">Chats</h2>
+                <h2 className="text-2xl font-semibold text-fg">Chats</h2>
                 <Link
                     href="/Contacts"
                     title="Find friends"
-                    className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-700 transition hover:bg-blue-50 hover:text-blue-600"
+                    className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-2 text-fg transition hover:bg-primary-soft hover:text-accent"
                 >
                     <PersonAddAlt1Icon fontSize="small" />
                 </Link>
             </div>
 
             <div className="px-4 pb-3">
-                <label className="flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2 text-slate-500 focus-within:ring-2 focus-within:ring-blue-500/40">
+                <label className="flex items-center gap-2 rounded-full bg-surface-2 px-3 py-2 text-muted focus-within:ring-2 focus-within:ring-primary/40">
                     <SearchIcon fontSize="small" />
                     <input
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         placeholder="Search friends"
-                        className="w-full bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
+                        className="w-full bg-transparent text-sm text-fg outline-none placeholder:text-subtle"
                     />
                 </label>
             </div>
@@ -51,27 +51,27 @@ export default function ConversationList({ conversations, loading, myId, activeF
                     <ul>
                         {Array.from({ length: 6 }).map((_, i) => (
                             <li key={i} className="flex items-center gap-3 px-3 py-3">
-                                <div className="h-12 w-12 animate-pulse rounded-full bg-slate-200" />
+                                <div className="h-12 w-12 animate-pulse rounded-full bg-line" />
                                 <div className="flex-1 space-y-2">
-                                    <div className="h-3 w-1/2 animate-pulse rounded bg-slate-200" />
-                                    <div className="h-3 w-3/4 animate-pulse rounded bg-slate-100" />
+                                    <div className="h-3 w-1/2 animate-pulse rounded bg-line" />
+                                    <div className="h-3 w-3/4 animate-pulse rounded bg-surface-2" />
                                 </div>
                             </li>
                         ))}
                     </ul>
                 ) : conversations.length === 0 ? (
                     <div className="flex flex-col items-center px-6 py-12 text-center">
-                        <p className="font-medium text-slate-800">No friends yet</p>
-                        <p className="mt-1 text-sm text-slate-500">Add friends to start chatting.</p>
+                        <p className="font-medium text-fg">No friends yet</p>
+                        <p className="mt-1 text-sm text-muted">Add friends to start chatting.</p>
                         <Link
                             href="/Contacts"
-                            className="mt-4 rounded-full bg-blue-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-600"
+                            className="mt-4 rounded-full bg-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-primary-hover"
                         >
                             Find friends
                         </Link>
                     </div>
                 ) : filtered.length === 0 ? (
-                    <p className="px-4 py-8 text-center text-sm text-slate-500">No friends match “{query}”.</p>
+                    <p className="px-4 py-8 text-center text-sm text-muted">No friends match “{query}”.</p>
                 ) : (
                     <ul className="space-y-0.5">
                         {filtered.map((c) => {
@@ -80,14 +80,14 @@ export default function ConversationList({ conversations, loading, myId, activeF
                             const last = c.lastMessage;
                             const preview = last
                                 ? `${last.senderId === myId ? 'You: ' : ''}${last.content}`
-                                : 'Say hi 👋';
+                                : 'Start a conversation';
                             return (
                                 <li key={c.friend.id}>
                                     <Link
                                         href={`/Chat/${c.friend.id}`}
                                         aria-current={active ? 'page' : undefined}
                                         className={`flex items-center gap-3 rounded-xl px-3 py-2.5 transition ${
-                                            active ? 'bg-blue-50' : 'hover:bg-slate-50'
+                                            active ? 'bg-primary-soft' : 'hover:bg-surface-2'
                                         }`}
                                     >
                                         <UserAvatar user={c.friend} size={48} />
@@ -95,7 +95,7 @@ export default function ConversationList({ conversations, loading, myId, activeF
                                             <div className="flex items-baseline justify-between gap-2">
                                                 <span
                                                     className={`truncate ${
-                                                        unread ? 'font-semibold text-slate-900' : 'font-medium text-slate-800'
+                                                        unread ? 'font-semibold text-fg' : 'font-medium text-fg'
                                                     }`}
                                                 >
                                                     {displayName(c.friend)}
@@ -103,7 +103,7 @@ export default function ConversationList({ conversations, loading, myId, activeF
                                                 {last && (
                                                     <span
                                                         className={`shrink-0 text-xs ${
-                                                            unread ? 'font-semibold text-blue-600' : 'text-slate-400'
+                                                            unread ? 'font-semibold text-accent' : 'text-subtle'
                                                         }`}
                                                     >
                                                         {formatListTime(last.createdAt)}
@@ -113,13 +113,13 @@ export default function ConversationList({ conversations, loading, myId, activeF
                                             <div className="flex items-center justify-between gap-2">
                                                 <span
                                                     className={`truncate text-sm ${
-                                                        unread ? 'font-medium text-slate-900' : 'text-slate-500'
+                                                        unread ? 'font-medium text-fg' : 'text-muted'
                                                     }`}
                                                 >
                                                     {preview}
                                                 </span>
                                                 {unread && (
-                                                    <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-blue-500 px-1.5 text-[11px] font-semibold text-white">
+                                                    <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-semibold text-white">
                                                         {c.unreadCount > 99 ? '99+' : c.unreadCount}
                                                     </span>
                                                 )}

@@ -5,7 +5,7 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 import ArrowBackIosNewRoundedIcon from '@mui/icons-material/ArrowBackIosNewRounded';
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
 import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownRounded';
-import { supabase } from '@/lib/supabase';
+import { joinChannel } from '@/lib/realtimeChannel';
 import { useChat } from './ChatContext';
 import UserAvatar from './UserAvatar';
 import { displayName, formatDayLabel, formatTime, isSameDay } from './format';
@@ -99,13 +99,9 @@ export default function ConversationView({ friendId }: { friendId: string }) {
     // ---- Realtime: messages, read receipts, typing, presence -----------------
     useEffect(() => {
         if (!topic) return;
-        const channel = supabase.channel(topic, {
-            config: { broadcast: { self: false }, presence: { key: myId } },
-        });
-        channelRef.current = channel;
 
-        channel
-            .on('broadcast', { event: 'message' }, ({ payload }) => {
+        function onBroadcast(event: string, payload: unknown) {
+            if (event === 'message') {
                 const msg = payload as Message;
                 const atBottom = isNearBottom();
                 setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : mergeMessage(prev, msg)));
@@ -115,8 +111,7 @@ export default function ConversationView({ friendId }: { friendId: string }) {
                     if (atBottom) scrollIntentRef.current = 'smooth';
                     markRead();
                 }
-            })
-            .on('broadcast', { event: 'read' }, ({ payload }) => {
+            } else if (event === 'read') {
                 const { readerId, readAt } = payload as { readerId: string; readAt: string };
                 if (readerId !== friendId) return;
                 const cutoff = new Date(readAt).getTime();
@@ -127,26 +122,29 @@ export default function ConversationView({ friendId }: { friendId: string }) {
                             : m
                     )
                 );
-            })
-            .on('broadcast', { event: 'typing' }, ({ payload }) => {
+            } else if (event === 'typing') {
                 if ((payload as { userId: string }).userId !== friendId) return;
                 const atBottom = isNearBottom();
                 setFriendTyping(true);
                 if (atBottom) scrollIntentRef.current = 'smooth';
                 if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
                 typingTimerRef.current = setTimeout(() => setFriendTyping(false), TYPING_TIMEOUT_MS);
-            })
-            .on('presence', { event: 'sync' }, () => {
+            }
+        }
+
+        const sub = joinChannel(topic, {
+            presenceKey: myId,
+            onBroadcast,
+            onPresenceSync: (channel) => {
                 setFriendOnline(Object.keys(channel.presenceState()).includes(friendId));
-            })
-            .subscribe(async (state) => {
-                if (state === 'SUBSCRIBED') await channel.track({ onlineAt: new Date().toISOString() });
-            });
+            },
+        });
+        channelRef.current = sub.channel;
 
         return () => {
             channelRef.current = null;
             if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
-            supabase.removeChannel(channel);
+            sub.leave();
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [topic, myId, friendId]);
@@ -259,10 +257,10 @@ export default function ConversationView({ friendId }: { friendId: string }) {
     if (status === 'forbidden' || status === 'error') {
         return (
             <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">
-                <p className="font-medium text-slate-800">
+                <p className="font-medium text-fg">
                     {status === 'forbidden' ? 'You can only message friends.' : 'Could not load this conversation.'}
                 </p>
-                <Link href="/Chat" className="mt-3 text-sm font-medium text-blue-600 hover:underline">
+                <Link href="/Chat" className="mt-3 text-sm font-medium text-accent hover:underline">
                     Back to chats
                 </Link>
             </div>
@@ -272,18 +270,18 @@ export default function ConversationView({ friendId }: { friendId: string }) {
     return (
         <div className="flex min-h-0 flex-1 flex-col">
             {/* Header */}
-            <header className="flex items-center gap-3 border-b border-slate-200 px-3 py-2.5 sm:px-5">
+            <header className="flex items-center gap-3 border-b border-line px-3 py-2.5 sm:px-5">
                 <Link
                     href="/Chat"
                     aria-label="Back to chats"
-                    className="flex h-9 w-9 items-center justify-center rounded-full text-blue-600 hover:bg-blue-50 md:hidden"
+                    className="flex h-9 w-9 items-center justify-center rounded-full text-accent hover:bg-primary-soft md:hidden"
                 >
                     <ArrowBackIosNewRoundedIcon fontSize="small" />
                 </Link>
                 <UserAvatar user={friend} size={42} online={friendOnline} />
                 <div className="min-w-0">
-                    <h2 className="truncate font-semibold text-slate-900">{friend ? name : ' '}</h2>
-                    <p className={`h-4 text-xs ${friendTyping ? 'text-blue-600' : 'text-slate-500'}`}>{subtitle}</p>
+                    <h2 className="truncate font-semibold text-fg">{friend ? name : ' '}</h2>
+                    <p className={`h-4 text-xs ${friendTyping ? 'text-accent' : 'text-muted'}`}>{subtitle}</p>
                 </div>
             </header>
 
@@ -292,25 +290,25 @@ export default function ConversationView({ friendId }: { friendId: string }) {
                 <div
                     ref={scrollRef}
                     onScroll={onScroll}
-                    className="h-full overflow-y-auto bg-gradient-to-b from-white to-blue-50/40 px-3 py-4 sm:px-6"
+                    className="h-full overflow-y-auto bg-gradient-to-b from-surface to-primary-soft/40 px-3 py-4 sm:px-6"
                 >
                     {status === 'loading' ? (
                         <div className="flex h-full items-center justify-center">
-                            <div className="h-7 w-7 animate-spin rounded-full border-4 border-blue-500 border-t-transparent" />
+                            <div className="h-7 w-7 animate-spin rounded-full border-4 border-primary border-t-transparent" />
                         </div>
                     ) : (
                         <>
                             {loadingOlder && (
                                 <div className="flex justify-center py-2">
-                                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
+                                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                                 </div>
                             )}
 
                             {!hasMore && (
                                 <div className="flex flex-col items-center pt-6 pb-8 text-center">
                                     <UserAvatar user={friend} size={72} />
-                                    <p className="mt-3 font-semibold text-slate-900">{name}</p>
-                                    <p className="text-sm text-slate-500">
+                                    <p className="mt-3 font-semibold text-fg">{name}</p>
+                                    <p className="text-sm text-muted">
                                         {messages.length === 0
                                             ? `You're friends now. Say hi to ${name}!`
                                             : 'This is the beginning of your conversation.'}
@@ -318,10 +316,10 @@ export default function ConversationView({ friendId }: { friendId: string }) {
                                     {messages.length === 0 && (
                                         <button
                                             type="button"
-                                            onClick={() => send('👋')}
-                                            className="mt-4 rounded-full bg-blue-50 px-4 py-2 text-sm font-medium text-blue-600 transition hover:bg-blue-100"
+                                            onClick={() => send('Hello!')}
+                                            className="mt-4 rounded-full bg-primary-soft px-4 py-2 text-sm font-medium text-accent transition hover:bg-primary-soft"
                                         >
-                                            👋 Wave
+                                            Say hello
                                         </button>
                                     )}
                                 </div>
@@ -351,10 +349,10 @@ export default function ConversationView({ friendId }: { friendId: string }) {
                                     return (
                                         <Fragment key={m.id}>
                                             {newDay && (
-                                                <li className="my-4 flex items-center gap-3 text-xs font-medium text-slate-400">
-                                                    <span className="h-px flex-1 bg-slate-200" />
+                                                <li className="my-4 flex items-center gap-3 text-xs font-medium text-subtle">
+                                                    <span className="h-px flex-1 bg-line" />
                                                     {formatDayLabel(m.createdAt)}
-                                                    <span className="h-px flex-1 bg-slate-200" />
+                                                    <span className="h-px flex-1 bg-line" />
                                                 </li>
                                             )}
                                             <li
@@ -372,23 +370,23 @@ export default function ConversationView({ friendId }: { friendId: string }) {
                                                         title={formatTime(m.createdAt)}
                                                         className={`whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2 text-[15px] leading-snug ${corners} ${
                                                             !mine
-                                                                ? 'bg-white text-slate-900 ring-1 ring-slate-200'
+                                                                ? 'bg-surface text-fg ring-1 ring-line'
                                                                 : m.status === 'failed'
-                                                                  ? 'bg-red-500 text-white'
-                                                                  : 'bg-blue-500 text-white shadow-sm shadow-blue-500/20'
+                                                                  ? 'bg-danger text-white'
+                                                                  : 'bg-primary text-white shadow-sm shadow-primary/20'
                                                         } ${m.status === 'sending' ? 'opacity-70' : ''}`}
                                                     >
                                                         {m.content}
                                                     </div>
                                                     {!joinNext && (
-                                                        <span className="mt-1 px-1 text-[11px] text-slate-400">
+                                                        <span className="mt-1 px-1 text-[11px] text-subtle">
                                                             {m.status === 'sending' ? (
                                                                 'Sending…'
                                                             ) : m.status === 'failed' ? (
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => send(m.content, m.id)}
-                                                                    className="font-medium text-red-500 hover:underline"
+                                                                    className="font-medium text-danger hover:underline"
                                                                 >
                                                                     Not sent · Tap to retry
                                                                 </button>
@@ -409,11 +407,11 @@ export default function ConversationView({ friendId }: { friendId: string }) {
                                 {friendTyping && (
                                     <li className="mt-3 flex items-end gap-2">
                                         <UserAvatar user={friend} size={28} />
-                                        <div className="flex gap-1 rounded-2xl bg-white px-4 py-3 ring-1 ring-slate-200" aria-label={`${name} is typing`}>
+                                        <div className="flex gap-1 rounded-2xl bg-surface px-4 py-3 ring-1 ring-line" aria-label={`${name} is typing`}>
                                             {[0, 150, 300].map((delay) => (
                                                 <span
                                                     key={delay}
-                                                    className="h-2 w-2 animate-bounce rounded-full bg-slate-400"
+                                                    className="h-2 w-2 animate-bounce rounded-full bg-subtle"
                                                     style={{ animationDelay: `${delay}ms` }}
                                                 />
                                             ))}
@@ -430,7 +428,7 @@ export default function ConversationView({ friendId }: { friendId: string }) {
                         type="button"
                         aria-label="Jump to latest"
                         onClick={() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })}
-                        className="absolute bottom-4 left-1/2 flex h-9 w-9 -translate-x-1/2 items-center justify-center rounded-full bg-white text-blue-600 shadow-lg ring-1 ring-slate-200 transition hover:bg-blue-50"
+                        className="absolute bottom-4 left-1/2 flex h-9 w-9 -translate-x-1/2 items-center justify-center rounded-full bg-surface text-accent shadow-lg ring-1 ring-line transition hover:bg-primary-soft"
                     >
                         <KeyboardArrowDownRoundedIcon />
                     </button>
@@ -438,8 +436,8 @@ export default function ConversationView({ friendId }: { friendId: string }) {
             </div>
 
             {/* Composer */}
-            <form onSubmit={handleSubmit} className="flex items-end gap-2 border-t border-slate-200 bg-white px-3 py-3 sm:px-5">
-                <div className="flex min-w-0 flex-1 items-end rounded-3xl bg-slate-100 px-4 py-2 focus-within:ring-2 focus-within:ring-blue-500/40">
+            <form onSubmit={handleSubmit} className="flex items-end gap-2 border-t border-line bg-surface px-3 py-3 sm:px-5">
+                <div className="flex min-w-0 flex-1 items-end rounded-3xl bg-surface-2 px-4 py-2 focus-within:ring-2 focus-within:ring-primary/40">
                     <textarea
                         ref={inputRef}
                         value={text}
@@ -455,14 +453,14 @@ export default function ConversationView({ friendId }: { friendId: string }) {
                         }}
                         placeholder={`Message ${friend ? name : ''}`}
                         aria-label="Message"
-                        className="max-h-[140px] w-full resize-none bg-transparent py-1 text-[15px] text-slate-900 outline-none placeholder:text-slate-400"
+                        className="max-h-[140px] w-full resize-none bg-transparent py-1 text-[15px] text-fg outline-none placeholder:text-subtle"
                     />
                 </div>
                 <button
                     type="submit"
                     aria-label="Send"
                     disabled={!text.trim() || status !== 'ready'}
-                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-blue-500 text-white shadow-md shadow-blue-500/30 transition hover:bg-blue-600 disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none"
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary text-white shadow-md shadow-primary/30 transition hover:bg-primary-hover disabled:bg-line disabled:text-subtle disabled:shadow-none"
                 >
                     <SendRoundedIcon fontSize="small" />
                 </button>

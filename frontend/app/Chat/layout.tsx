@@ -5,7 +5,7 @@ import NavBar from '@/components/NavBar';
 import ConversationList from '@/components/chat/ConversationList';
 import { ChatContext, type ChatContextValue } from '@/components/chat/ChatContext';
 import type { Conversation, Message } from '@/components/chat/types';
-import { supabase } from '@/lib/supabase';
+import { joinChannel } from '@/lib/realtimeChannel';
 import { useAuth } from '@/lib/useAuth';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -92,13 +92,12 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
     // Personal inbox channel keeps the sidebar live (new messages from any friend)
     useEffect(() => {
         if (!inboxTopic) return;
-        const channel = supabase
-            .channel(inboxTopic)
-            .on('broadcast', { event: 'message' }, ({ payload }) => applyMessage(payload as Message))
-            .subscribe();
-        return () => {
-            supabase.removeChannel(channel);
-        };
+        const sub = joinChannel(inboxTopic, {
+            onBroadcast: (event, payload) => {
+                if (event === 'message') applyMessage(payload as Message);
+            },
+        });
+        return () => sub.leave();
     }, [inboxTopic, applyMessage]);
 
     const ctx = useMemo<ChatContextValue | null>(
@@ -109,19 +108,19 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
 
     if (loading) {
         return (
-            <div className="flex min-h-dvh items-center justify-center bg-slate-100">
-                <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent" />
+            <div className="flex min-h-dvh items-center justify-center bg-bg">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
             </div>
         );
     }
 
     return (
-        <div className="flex h-dvh flex-col bg-slate-100 text-slate-900">
+        <div className="flex h-dvh flex-col bg-bg text-fg">
             <NavBar profilePic={profilePic} />
             <main className="flex min-h-0 flex-1 justify-center md:p-6">
-                <div className="flex w-full max-w-6xl overflow-hidden bg-white md:rounded-2xl md:shadow-xl md:ring-1 md:ring-slate-200">
+                <div className="flex w-full max-w-6xl overflow-hidden bg-surface md:rounded-2xl md:shadow-xl md:ring-1 md:ring-line">
                     <aside
-                        className={`${activeFriendId ? 'hidden md:flex' : 'flex'} w-full flex-col border-slate-200 md:w-80 md:border-r lg:w-96`}
+                        className={`${activeFriendId ? 'hidden md:flex' : 'flex'} w-full flex-col border-line md:w-80 md:border-r lg:w-96`}
                     >
                         <ConversationList
                             conversations={conversations}
@@ -135,7 +134,7 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
                             <ChatContext.Provider value={ctx}>{children}</ChatContext.Provider>
                         ) : (
                             <div className="flex flex-1 items-center justify-center">
-                                <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent" />
+                                <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
                             </div>
                         )}
                     </section>

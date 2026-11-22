@@ -16,6 +16,9 @@ function sign(value: string) {
   return crypto.createHmac('sha256', SIGNING_KEY).update(value).digest('hex').slice(0, 32);
 }
 
+/** Public feed channel: posts are visible to every signed-in user anyway. */
+export const FEED_TOPIC = 'feed';
+
 /** Channel shared by the two people in a 1:1 conversation. */
 export function dmTopic(userAId: string, userBId: string) {
   const [a, b] = [userAId, userBId].sort();

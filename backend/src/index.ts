@@ -10,7 +10,10 @@ import { errorHandler } from './middleware/error';
 
 const app = express();
 
-app.use(cors({ origin: ['http://localhost:3000'] }));
+const allowedOrigins = (process.env.FRONTEND_URL ?? 'http://localhost:3000')
+  .split(',')
+  .map((o) => o.trim().replace(/\/+$/, ''));
+app.use(cors({ origin: allowedOrigins }));
 app.use(express.json());
 app.use(logger);
 
